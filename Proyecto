@@ -2,818 +2,647 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Simulador de Control de Versiones Avanzado</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Control de Versiones Visual</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&display=swap');
 
-  /* Reset and base */
+  /* Reset */
   * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
   }
-  body {
-    margin: 0;
-    font-family: 'Fira Code', monospace, monospace;
-    background: linear-gradient(135deg, #0d0f14, #222544);
-    color: #e1e6ec;
+
+  body, html {
+    height: 100%;
+    font-family: 'Fira Code', monospace;
+    background: linear-gradient(135deg, #1e1e2f, #14141e);
+    color: #ccc;
+    overflow: hidden;
+  }
+
+  #app {
     display: flex;
-    flex-direction: column;
     height: 100vh;
-    max-height: 600px;
-    max-width: 350px;
-    margin: auto;
-    user-select: none;
-    -webkit-font-smoothing: antialiased;
+    width: 100vw;
   }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #1a2133;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #495caa;
-    border-radius: 4px;
-  }
-
-  /* Header */
-  header {
-    background: #20263b;
-    padding: 14px 20px;
-    box-shadow: 0 2px 6px rgba(33,50,99,0.7);
+  /* Sidebar for file list */
+  #fileList {
+    width: 320px;
+    background: #222233;
+    border-right: 2px solid #444466;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #374b94;
-    user-select: text;
+    flex-direction: column;
+    overflow: hidden;
   }
-  header h1 {
-    font-size: 1.3rem;
-    margin: 0;
+
+  #fileList header {
+    padding: 20px;
+    text-align: center;
     font-weight: 700;
-    color: #6db6f2;
-    text-shadow: 0 0 3px #5390ff88;
+    font-size: 1.3rem;
+    background: linear-gradient(90deg, #5e72eb, #825ee4);
+    color: white;
+    user-select: none;
+    letter-spacing: 1.3px;
+    box-shadow: 0 3px 12px rgba(130,94,228,.7);
   }
-  #branchSelect {
-    background: #2e3a6e;
+
+  #searchInput {
     border: none;
-    border-radius: 6px;
-    padding: 5px 10px;
-    font-family: 'Fira Code', monospace;
-    color: #cdd6f4;
-    box-shadow: inset 0 0 5px #1a2350;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  #branchSelect:hover, #branchSelect:focus {
-    background: #5b73bb;
-    outline: none;
-  }
-
-  /* Main container */
-  .container {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    background: #121828;
-    margin: 8px 10px 12px 10px;
-    border-radius: 12px;
-    box-shadow:
-      0 0 10px 1px #20317c99,
-      inset 0 0 12px 3px #161e3a;
-    overflow: hidden;
-  }
-
-  /* Top panel: files and preview */
-  .top-panel {
-    display: flex;
-    flex: 1 1 auto;
-    overflow: hidden;
-  }
-
-  /* Files panel */
-  .files-panel {
-    width: 110px;
-    background: #1a2244;
-    border-right: 1px solid #334677;
-    display: flex;
-    flex-direction: column;
-    padding: 12px 8px 12px 8px;
-  }
-  .files-search {
-    margin-bottom: 10px;
-  }
-  .files-search input {
-    width: 100%;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.85rem;
-    padding: 5px 8px;
-    border-radius: 6px;
-    border: none;
-    background: #2a377a;
-    color: #bccdef;
-    box-shadow: inset 0 0 8px #1f2856;
-    outline-offset: 2px;
-  }
-  .files-search input::placeholder {
-    color: #607ac9aa;
-  }
-
-  .files-list {
-    flex: 1 1 auto;
-    overflow-y: auto;
+    margin: 12px 20px;
+    padding: 10px 12px;
     border-radius: 8px;
-    box-shadow: inset 0 0 5px #172153aa;
+    font-family: 'Fira Code', monospace;
+    font-size: 1rem;
+    background: #2c2c44;
+    color: #bbb;
+    transition: background 0.3s ease;
+  }
+  #searchInput::placeholder {
+    color: #666;
+  }
+  #searchInput:focus {
+    background: #4b4b7a;
+    outline: none;
+    color: white;
+  }
+
+  #files {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px;
   }
   .file-item {
-    padding: 6px 4px 6px 10px;
-    margin-bottom: 6px;
-    font-size: 0.78rem;
-    border-radius: 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    user-select: none;
+    padding: 10px 10px;
+    margin: 6px 0;
+    background: #2d2d4a;
+    border-radius: 8px;
     cursor: pointer;
-    color: #bdc6f7cc;
-    transition: background 0.25s ease, color 0.25s ease;
+    transition: background 0.25s ease;
   }
-  .file-item:last-child {
-    margin-bottom: 0;
-  }
-  .file-item:hover, .file-item:focus-visible {
-    background: #3950c9aa;
-    color: #e1ebff;
-    outline: none;
+  .file-item:hover {
+    background: #4e4e8d;
   }
   .file-item.selected {
-    background: #3f56f9cc;
-    color: #f9f9ff;
+    background: linear-gradient(90deg, #5e72eb, #825ee4);
+    color: white;
     font-weight: 700;
-    box-shadow: 0 0 8px 1.5px #2e3cafcc;
+    box-shadow: 0 0 10px #736bf2;
   }
+
   .file-name {
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 75px;
-    user-select: text;
   }
 
-  /* Status badges */
-  .status-badge {
-    font-size: 0.65rem;
-    padding: 2px 6px;
-    border-radius: 15px;
+  .file-status {
+    font-size: 0.8rem;
+    text-transform: uppercase;
     font-weight: 700;
-    user-select: none;
-    flex-shrink: 0;
-    box-shadow: 0 0 5px #223688cc;
-    filter: drop-shadow(0 0 1px rgba(33, 49, 124, 0.7));
-    transition: background 0.3s;
-  }
-  .status-modified {
-    background: #e5c07bbb;
-    color: #5a3a00;
-  }
-  .status-staged {
-    background: #61af8788;
-    color: #0f2e13;
-  }
-  .status-committed {
-    background: #6c7a9393;
-    color: #dde2efcc;
+    padding: 3px 7px;
+    border-radius: 12px;
   }
 
-  /* Preview panel */
-  .preview-panel {
-    flex: 1 1 auto;
-    background: #0f162c;
-    border-left: 1px solid #334477cc;
-    border-radius: 0 12px 12px 0;
-    padding: 14px 18px;
+  .status-modified {
+    background: #ffb545;
+    color: #4a3700;
+  }
+
+  .status-staged {
+    background: #47d487;
+    color: #0e4724;
+  }
+
+  .status-committed {
+    background: #8a8a8a;
+    color: #222222;
+  }
+
+  /* Main content - file editor and commit history */
+  #mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1b1b2e;
+  }
+
+  /* Editor & diff */
+  #editorContainer {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  #editorPane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #444466;
+  }
+
+  #editorHeader {
+    padding: 15px;
+    background: linear-gradient(to right, #556ee6, #8e54e9);
+    color: white;
+    font-weight: 700;
+    font-size: 1.2rem;
+    user-select: none;
+    box-shadow: 0 0 20px #7653e9cc;
+  }
+
+  #editorTextarea {
+    flex: 1;
+    background: #151632;
+    color: #dcdcdc;
+    font-family: 'Fira Code', monospace;
+    font-size: 1rem;
+    padding: 20px;
+    border: none;
+    resize: none;
+    outline: none;
+    overflow-y: auto;
+    box-shadow:
+      inset 0 0 8px #2b287e,
+      inset 0 0 12px #5152cc;
+  }
+
+  #diffPane {
+    width: 320px;
+    background: #181b39;
     display: flex;
     flex-direction: column;
   }
-  .preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #bdd8ffcc;
-    margin-bottom: 8px;
-    user-select: text;
-  }
-  .preview-header h3 {
-    font-size: 1.1rem;
+
+  #diffHeader {
+    padding: 15px;
+    background: linear-gradient(to right, #f45c43, #eb3349);
+    color: white;
     font-weight: 700;
-    overflow-wrap: anywhere;
-  }
-  .preview-header span {
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: #203060cc;
-    border-radius: 8px;
-    padding: 3px 9px;
-    color: #acc2ffcc;
+    font-size: 1.2rem;
     user-select: none;
+    box-shadow: 0 0 20px #eb334999;
   }
-  .preview-textarea {
-    flex: 1 1 auto;
-    background: #162044;
-    border-radius: 10px;
-    border: none;
-    outline: none;
-    color: #c8d8ff;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.9rem;
-    padding: 10px 14px;
-    resize: none;
-    box-shadow:
-      inset 1px 1px 5px #2a3687bb,
-      inset -1px -1px 7px #132055cc;
-    scrollbar-width: thin;
-    scrollbar-color: #3a4ab3 #12214c;
-  }
-  /* Diff preview */
-  .diff-container {
-    margin-top: 12px;
-    background: #15295bdd;
-    border-radius: 10px;
-    color: #eff1ffcc;
-    font-family: monospace;
-    font-size: 0.85rem;
-    line-height: 1.22;
+
+  #diffContent {
+    flex: 1;
     overflow-y: auto;
-    max-height: 100px;
-    padding: 8px 12px;
-    user-select: text;
-    box-shadow: inset 0 0 6px #253f8fbb;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #eee;
+    line-height: 1.3;
   }
+
   .diff-line {
     white-space: pre-wrap;
+    word-break: break-word;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-bottom: 2px;
   }
+
   .diff-added {
-    background: #335533cc;
-    color: #acf2ac;
+    background-color: #334f1d;
+    color: #a6f0a6;
   }
+
   .diff-removed {
-    background: #863434cc;
-    color: #f2aaaa;
+    background-color: #6a2d2d;
+    color: #f08c8c;
   }
+
   .diff-context {
-    color: #c3c8e6aa;
+    color: #999;
+    background: transparent;
   }
 
-
-  /* Buttons bar below preview */
-  .preview-buttons {
-    margin-top: 12px;
+  /* Controls below editor */
+  #editorControls {
+    background: #25254e;
+    padding: 12px 20px;
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  button.action {
-    background: linear-gradient(145deg, #203071, #122152);
-    color: #c4d4ff;
-    box-shadow:
-      1px 1px 7px #051145bb,
-      -1px -1px 6px #4169e1cc;
-    border-radius: 10px;
-    padding: 8px 14px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    border: none;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    flex: 1 1 45%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    gap: 15px;
     user-select: none;
   }
-  button.action:hover:not(:disabled),
-  button.action:focus-visible:not(:disabled) {
-    background: #2c44b0;
-    color: #f0f6ff;
-    box-shadow:
-      0 0 14px 2px #5680f9dd,
-      inset 0 0 9px #142e81cc;
-    outline: none;
+  button.control-btn {
+    flex: 1;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 10px 12px;
+    color: white;
+    background: linear-gradient(135deg, #3a3ac1, #7b51be);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 10px #6e5edb;
+    transition: background-color 0.3s ease;
   }
-  button.action:disabled {
-    opacity: 0.35;
+  button.control-btn:disabled {
+    background: #444475;
     cursor: not-allowed;
     box-shadow: none;
   }
-  button.action svg {
-    stroke-width: 2.3;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    stroke: currentColor;
-    user-select: none;
+  button.control-btn:hover:not(:disabled),
+  button.control-btn:focus:not(:disabled) {
+    background-color: #8a63e0;
+    outline: none;
   }
 
-  /* Commit area */
-  .commit-panel {
-    background: #1a2564cc;
-    padding: 14px 18px;
-    border-radius: 0 0 12px 12px;
+  /* Commit panel */
+  #commitPanel {
+    background: #151631;
+    padding: 15px 20px;
+    border-top: 2px solid #444466;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    box-shadow: inset 0px 0px 18px 3px #4277f7aa;
+    align-items: center;
+    gap: 12px;
   }
-  .commit-panel input[type="text"] {
+
+  #commitMessage {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: none;
     font-family: 'Fira Code', monospace;
-    font-size: 0.95rem;
-    border-radius: 12px;
-    border: none;
-    padding: 10px 14px;
-    color: #cbe3ff;
-    background: #0f174b;
+    font-size: 1rem;
+    background: #29294d;
+    color: #cccccc;
     box-shadow:
-      inset 2px 2px 8px #0a1031,
-      inset -2px -2px 7px #2a3d78;
-    outline-offset: 3px;
-    outline-color: #3a5bdbaa;
-    transition: background 0.25s ease;
+      inset 1px 1px 6px #222254,
+      inset -1px -1px 8px #484892;
+    outline-offset: 2px;
+    transition: background-color 0.3s ease;
   }
-  .commit-panel input[type="text"]::placeholder {
-    color: #677fb800;
+  #commitMessage::placeholder {
+    color: #666699;
   }
-  .commit-panel input[type="text"]:focus {
-    background: #2043f7cc;
-    color: #eff5ffcc;
+  #commitMessage:focus {
+    background: #3e3ecc;
+    color: white;
+    outline: none;
   }
 
-  .commit-panel button {
-    background: #3550a1;
-    color: #d0d7ff;
+  #commitBtn {
+    padding: 12px 28px;
     font-weight: 700;
-    padding: 10px 16px;
-    border-radius: 12px;
+    font-size: 1.1rem;
+    border-radius: 14px;
     border: none;
-    box-shadow:
-      0 0 10px 0 #3a50c5,
-      inset 0 2px 6px 0 #768cec;
     cursor: pointer;
-    transition: 0.4s ease;
-    user-select: none;
+    background: linear-gradient(135deg, #37cdbe, #2aa7a2);
+    color: #042f2f;
+    box-shadow: 0 0 12px #2ab2ff;
+    transition: background-color 0.3s ease;
   }
-  .commit-panel button:disabled {
-    opacity: 0.4;
+  #commitBtn:disabled {
+    background: #1a3747;
+    color: #556677;
     cursor: not-allowed;
     box-shadow: none;
   }
-  .commit-panel button:hover:not(:disabled),
-  .commit-panel button:focus-visible:not(:disabled) {
-    background: #1f3ead;
-    box-shadow:
-      0 0 15px 1px #75a6ff,
-      inset 0 3px 8px 1px #a2b7ff;
+  #commitBtn:hover:not(:disabled),
+  #commitBtn:focus:not(:disabled) {
+    background-color: #2bb8d6;
     outline: none;
   }
 
-  /* Commit history */
-  .history-panel {
-    background: #161b57cc;
-    border-top: 1px solid #2a3a96;
+  /* Commit History */
+  #commitHistory {
+    background: #1d1d36;
+    height: 180px;
     overflow-y: auto;
-    max-height: 140px;
-    border-radius: 0 0 12px 12px;
-    padding: 10px 16px;
-    color: #bec4ffcc;
-    user-select: text;
-    font-variant-numeric: tabular-nums;
-  }
-  .commit-entry {
-    margin-bottom: 12px;
-    border-left: 3px solid #4052bf;
-    padding-left: 10px;
-  }
-  .commit-entry:last-child {
-    margin-bottom: 0;
-  }
-  .commit-msg {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #83a7ff;
-  }
-  .commit-date {
-    font-size: 0.78rem;
-    font-style: italic;
-    color: #7c93d1bb;
-    margin-bottom: 6px;
-  }
-  .changed-files {
-    font-size: 0.82rem;
+    padding: 15px 20px;
+    font-family: monospace;
+    font-size: 0.85rem;
     line-height: 1.3;
-    color: #a4b1cf;
-  }
-  .changed-files strong {
-    color: #d1dcff;
   }
 
-  /* Add/delete file buttons row */
-  .file-control-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    margin: 8px 0 4px 0;
+  .commit-entry {
+    margin-bottom: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #38385760;
+    user-select: text;
   }
-  .file-control-buttons button {
-    background: #3943c9cc;
-    color: #dde5ff;
+
+  .commit-message {
     font-weight: 700;
-    padding: 6px 14px;
-    border-radius: 9px;
-    border: none;
-    cursor: pointer;
-    box-shadow:
-      1px 1px 8px #1f2c7baa,
-      inset 0 0 4px 2px #5a67ea;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    user-select: none;
-  }
-  .file-control-buttons button:hover,
-  .file-control-buttons button:focus-visible {
-    background: #566de7cc;
-    box-shadow:
-      0 0 12px 4px #5069f9cc,
-      inset 0 0 12px 4px #5b75ffcc;
-    outline: none;
-  }
-  .file-control-buttons button svg {
-    stroke-width: 2.5;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    stroke: currentColor;
+    color: #7ac7f5;
+    margin-bottom: 4px;
   }
 
-  /* Responsive */
-  @media (max-width: 400px) {
-    body {
-      max-width: 100vw;
-      max-height: 600px;
-      margin: 0;
+  .commit-meta {
+    color: #8aaaff88;
+    font-style: italic;
+  }
+
+  /* Scrollbar styling */
+  #fileList::-webkit-scrollbar,
+  #diffContent::-webkit-scrollbar,
+  #files::-webkit-scrollbar,
+  #commitHistory::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #fileList::-webkit-scrollbar-track,
+  #diffContent::-webkit-scrollbar-track,
+  #files::-webkit-scrollbar-track,
+  #commitHistory::-webkit-scrollbar-track {
+    background: #1b1b2e;
+  }
+
+  #fileList::-webkit-scrollbar-thumb,
+  #diffContent::-webkit-scrollbar-thumb,
+  #files::-webkit-scrollbar-thumb,
+  #commitHistory::-webkit-scrollbar-thumb {
+    background-color: #5658d3;
+    border-radius: 4px;
+  }
+
+  /* Responsive for smaller widths */
+  @media (max-width: 800px) {
+    #app {
+      flex-direction: column;
     }
-    .container {
-      margin: 6px 6px 6px 6px;
+    #fileList {
+      width: 100%;
+      height: 220px;
+      border-right: none;
+      border-bottom: 2px solid #444466;
     }
-    .files-panel {
-      width: 100px;
-      padding: 8px 5px 12px 5px;
+    #mainContent {
+      height: calc(100vh - 220px);
     }
-    .file-name {
-      max-width: 68px;
+    #editorContainer {
+      flex-direction: column;
     }
-    header h1 {
-      font-size: 1.1rem;
+    #diffPane {
+      width: 100%;
+      height: 120px;
+      border-left: none;
+      border-top: 2px solid #444466;
     }
-    .preview-header h3 {
-      font-size: 1rem;
-      overflow-wrap: break-word;
-    }
-    button.action {
-      font-size: 0.85rem;
-      padding: 7px 12px;
-    }
-    .commit-panel input[type="text"] {
-      font-size: 0.9rem;
-    }
-    .commit-panel button {
-      font-size: 0.9rem;
-      padding: 8px 12px;
+    #editorPane {
+      width: 100%;
+      border-right: none;
+      height: calc(100% - 120px);
     }
   }
 </style>
 </head>
 <body>
-<header>
-  <h1>RepoSimulado</h1>
-  <select id="branchSelect" aria-label="Selector de rama del repositorio" title="Seleccionar rama">
-    <option value="main" selected>Main</option>
-    <option value="dev">Dev</option>
-    <option value="feature-x">Feature-x</option>
-  </select>
-</header>
-<div class="container" role="main" aria-label="Simulador avanzado de control de versiones">
-
-  <div class="top-panel">
-    <aside class="files-panel" aria-label="Panel de archivos">
-      <div class="files-search">
-        <input id="searchFileInput" type="search" placeholder="Buscar archivos..." aria-label="Buscar archivos por nombre" spellcheck="false" />
+<div id="app" role="application" aria-label="Simulador visual de control de versiones">
+  <aside id="fileList" aria-label="Lista de archivos">
+    <header>Archivos</header>
+    <input type="text" id="searchInput" aria-label="Buscar archivos" placeholder="Buscar archivo..." autocomplete="off" />
+    <div id="files" role="list" tabindex="0" aria-live="polite" aria-relevant="additions removals" aria-atomic="true"></div>
+  </aside>
+  <section id="mainContent">
+    <div id="editorContainer">
+      <div id="editorPane">
+        <div id="editorHeader" aria-live="polite" aria-atomic="true" aria-relevant="text">
+          Seleccione un archivo
+        </div>
+        <textarea id="editorTextarea" spellcheck="false" aria-label="Editor de contenido del archivo seleccionado" disabled></textarea>
+        <div id="editorControls">
+          <button id="btnStage" class="control-btn" disabled aria-disabled="true" title="Preparar archivo modificado">Preparar</button>
+          <button id="btnReset" class="control-btn" disabled aria-disabled="true" title="Descartar cambios y restaurar">Restaurar</button>
+        </div>
       </div>
-      <div class="files-list" id="filesList" role="listbox" aria-multiselectable="false" tabindex="0" aria-label="Lista de archivos disponibles">
-        <!-- Archivo listado dinámicamente -->
-      </div>
-      <div class="file-control-buttons" aria-label="Agregar o eliminar archivos">
-        <button id="addFileBtn" title="Agregar archivo nuevo" aria-label="Agregar archivo nuevo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Añadir
-        </button>
-        <button id="deleteFileBtn" title="Eliminar archivo seleccionado" aria-label="Eliminar archivo seleccionado" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
-          Eliminar
-        </button>
-      </div>
-    </aside>
-
-    <section class="preview-panel" aria-label="Vista previa de archivo">
-      <div class="preview-header" role="region" aria-live="polite">
-        <h3 id="previewFilename">Seleccione un archivo</h3>
-        <span id="previewStatusBadge" class="">--</span>
-      </div>
-      <textarea id="previewTextarea" class="preview-textarea" placeholder="Seleccione un archivo para editar o ver aquí..." disabled aria-label="Editor de contenido del archivo seleccionado"></textarea>
-      <div id="diffContainer" class="diff-container" aria-label="Vista previa de diferencias">
-        <!-- Se mostrarán diferencias aquí -->
-      </div>
-      <div class="preview-buttons">
-        <button class="action tooltip" id="stageSelectedBtn" disabled aria-describedby="tipStage2" aria-label="Preparar cambios del archivo editado">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg>
-          Preparar
-          <span class="tooltiptext" id="tipStage2">Mover archivo modificado a área de preparación (stage)</span>
-        </button>
-        <button class="action tooltip" id="resetSelectedBtn" disabled aria-describedby="tipReset2" aria-label="Descartar cambios del archivo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19a7 7 0 1 0-7-7"/></svg>
-          Restaurar
-          <span class="tooltiptext" id="tipReset2">Descartar cambios y restaurar archivo</span>
-        </button>
-      </div>
-    </section>
-  </div>
-
-  <section class="commit-panel" aria-label="Panel de creación de commit">
-    <input id="commitMessageInput" type="text" placeholder="Mensaje del commit (mínimo 5 caracteres)" aria-label="Mensaje para el commit" autocomplete="off" />
-    <button id="commitBtn" disabled aria-label="Hacer commit con archivos preparados">HACER COMMIT</button>
-  </section>
-
-  <section class="history-panel" aria-label="Historial de commits recientes" tabindex="0">
-    <h2 style="margin-top:0; font-weight: 700; color: #7ea7ff; user-select:text;">Historial de Commits</h2>
-    <div id="commitHistory">
-      <div style="color:#6a77aa; font-style: italic;">No hay commits aún.</div>
+      <section id="diffPane" aria-label="Vista previa de diferencias">
+        <div id="diffHeader">Diferencias</div>
+        <div id="diffContent" tabindex="0" aria-live="polite" aria-atomic="true">Seleccione un archivo para ver las diferencias aquí.</div>
+      </section>
     </div>
+    <div id="commitPanel" role="region" aria-label="Panel para realizar commits">
+      <input type="text" id="commitMessage" aria-label="Mensaje del commit" placeholder="Escribe el mensaje del commit (mín. 5 caracteres)" autocomplete="off" />
+      <button id="commitBtn" disabled aria-disabled="true" title="Hacer commit con archivos preparados">Commit</button>
+    </div>
+    <section id="commitHistory" aria-live="polite" aria-label="Historial de commits recientes">
+      <div style="color:#666; text-align:center; padding-top: 60px; user-select:none;">No hay commits aún.</div>
+    </section>
   </section>
 </div>
-
 <script>
-  // Files model:
-  /* Each file object:
-    {
-      name: string
-      contentCommitted: string - last committed content of file
-      contentWorking: string - current working content (may be edited)
-      state: 'committed' | 'modified' | 'staged'
-    }
-  */
-  let files = [
+(() => {
+  // Initial files data
+  const files = [
     {
       name: 'index.html',
-      contentCommitted: '<!DOCTYPE html>\\n<html>\\n<head><title>Example</title></head>\\n<body>Hello World</body>\\n</html>',
-      contentWorking: '<!DOCTYPE html>\\n<html>\\n<head><title>Example Modified</title></head>\\n<body>Hello World!</body>\\n</html>',
-      state: 'modified',
+      contentCommitted: `<!DOCTYPE html>
+<html>
+<head><title>Demo</title></head>
+<body>Hello world!</body>
+</html>`,
+      contentWorking: `<!DOCTYPE html>
+<html>
+<head><title>Demo</title></head>
+<body>Hello world!!!</body>
+</html>`,
+      state: 'modified'
     },
     {
       name: 'app.js',
-      contentCommitted: "console.log('Hello world');",
-      contentWorking: "console.log('Hello world');",
-      state: 'committed',
+      contentCommitted: `console.log('Initial commit');`,
+      contentWorking: `console.log('Initial commit');`,
+      state: 'committed'
     },
     {
       name: 'style.css',
-      contentCommitted: 'body {\\n  background: white;\\n  color: black;\\n}',
-      contentWorking: 'body {\\n  background: #222233;\\n  color: lightgray;\\n}',
-      state: 'modified',
-    },
+      contentCommitted: `body { background: white; color: black; }`,
+      contentWorking: `body { background: #222233; color: #ddd; }`,
+      state: 'modified'
+    }
   ];
 
-  let commits = [];
+  let selectedIndex = null;
+  const commits = [];
 
-  let selectedFileIndex = null;
-
-  // DOM Elements
-  const filesListEl = document.getElementById('filesList');
-  const searchFileInput = document.getElementById('searchFileInput');
-  const addFileBtn = document.getElementById('addFileBtn');
-  const deleteFileBtn = document.getElementById('deleteFileBtn');
-  const previewFilenameEl = document.getElementById('previewFilename');
-  const previewStatusBadge = document.getElementById('previewStatusBadge');
-  const previewTextarea = document.getElementById('previewTextarea');
-  const diffContainer = document.getElementById('diffContainer');
-  const stageSelectedBtn = document.getElementById('stageSelectedBtn');
-  const resetSelectedBtn = document.getElementById('resetSelectedBtn');
-  const commitMessageInput = document.getElementById('commitMessageInput');
+  // DOM elements
+  const filesContainer = document.getElementById('files');
+  const searchInput = document.getElementById('searchInput');
+  const editorHeader = document.getElementById('editorHeader');
+  const editorTextarea = document.getElementById('editorTextarea');
+  const btnStage = document.getElementById('btnStage');
+  const btnReset = document.getElementById('btnReset');
+  const commitMessageInput = document.getElementById('commitMessage');
   const commitBtn = document.getElementById('commitBtn');
-  const commitHistoryEl = document.getElementById('commitHistory');
+  const diffContent = document.getElementById('diffContent');
+  const commitHistory = document.getElementById('commitHistory');
 
-  // Utility
-
-  // Escape html special chars
+  // Escape HTML special chars
   function escapeHtml(text) {
-    return text.replace(/[<>&"']/g, m => ({
-      '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;', "'":'&#39;',
-    })[m]);
+    return text.replace(/[&<>"']/g, tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[tag]);
   }
 
-  // Compute line diff - strings arrays
-  // Returns array of {line:string, type:'added'|'removed'|'context'}
-  // Simple diff algo based on lines
-  function computeDiff(baseLines, newLines) {
-    const diffed = [];
-    const maxLen = Math.max(baseLines.length, newLines.length);
-
-    // Naive line by line
-    for(let i=0; i<maxLen; i++) {
-      const baseLine = baseLines[i];
-      const newLine = newLines[i];
-      if(baseLine === undefined) {
-        diffed.push({line:newLine,type:'added'});
-      } else if(newLine === undefined) {
-        diffed.push({line:baseLine,type:'removed'});
-      } else if(baseLine !== newLine) {
-        diffed.push({line:baseLine,type:'removed'});
-        diffed.push({line:newLine,type:'added'});
-      } else {
-        diffed.push({line:baseLine,type:'context'});
-      }
-    }
-    return diffed;
-  }
-
-  // File filtering search
-  function filteredFiles() {
-    const searchTerm = searchFileInput.value.trim().toLowerCase();
-    if(searchTerm === '') return files.map((f,i) => [f,i]);
-    const res = [];
-    files.forEach((f,i) => {
-      if(f.name.toLowerCase().includes(searchTerm)) {
-        res.push([f,i]);
-      }
-    });
-    return res;
-  }
-
-  // Render functions
+  // Render files list filtered
   function renderFiles() {
-    const filtered = filteredFiles();
-    filesListEl.innerHTML = '';
-    filtered.forEach(([file, idx]) => {
+    const search = searchInput.value.toLowerCase();
+    const filtered = files
+      .map((f,i) => ({file: f, i}))
+      .filter(({file}) => file.name.toLowerCase().includes(search));
+    filesContainer.innerHTML = '';
+    if (filtered.length === 0) {
+      const noRes = document.createElement('div');
+      noRes.textContent = 'No hay archivos.';
+      noRes.style.textAlign = 'center';
+      noRes.style.marginTop = '1rem';
+      noRes.style.color = '#666';
+      filesContainer.appendChild(noRes);
+      return;
+    }
+    filtered.forEach(({file, i}) => {
       const div = document.createElement('div');
-      div.className = 'file-item';
-      if(idx === selectedFileIndex) {
-        div.classList.add('selected');
-        div.setAttribute('aria-selected', 'true');
-      } else {
-        div.setAttribute('aria-selected', 'false');
-      }
+      div.classList.add('file-item');
+      if(i === selectedIndex) div.classList.add('selected');
       div.setAttribute('role', 'option');
-      div.setAttribute('tabindex', '0');
-      div.setAttribute('aria-label', `Archivo ${file.name}, estado ${file.state}`);
+      div.tabIndex = 0;
+      div.setAttribute('aria-selected', i === selectedIndex ? 'true' : 'false');
+      div.setAttribute('aria-label', `${file.name}, estado ${file.state}`);
 
-      const statusClass = {
-        committed: 'status-committed',
-        modified: 'status-modified',
-        staged: 'status-staged',
-      }[file.state] || 'status-committed';
+      const nameSpan = document.createElement('span');
+      nameSpan.classList.add('file-name');
+      nameSpan.textContent = file.name;
+      div.appendChild(nameSpan);
 
-      div.innerHTML = \`
-        <span class="file-name">\${escapeHtml(file.name)}</span>
-        <span class="status-badge \${statusClass}">\${file.state.toUpperCase()}</span>
-      \`;
+      const statusSpan = document.createElement('span');
+      statusSpan.classList.add('file-status');
+      if(file.state === 'modified') statusSpan.classList.add('status-modified');
+      else if(file.state === 'staged') statusSpan.classList.add('status-staged');
+      else statusSpan.classList.add('status-committed');
+      statusSpan.textContent = file.state.toUpperCase();
+      div.appendChild(statusSpan);
 
-      div.addEventListener('click', () => selectFile(idx));
+      div.addEventListener('click', () => {
+        selectFile(i);
+      });
       div.addEventListener('keydown', e => {
         if(e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          selectFile(idx);
+          selectFile(i);
         }
       });
-
-      filesListEl.appendChild(div);
+      filesContainer.appendChild(div);
     });
-    updateFileControls();
   }
 
-  // Select file
-  function selectFile(index) {
-    if(selectedFileIndex === index) {
-      selectedFileIndex = null;
-    } else {
-      selectedFileIndex = index;
-    }
-    updatePreview();
+  // Select file by index
+  function selectFile(i) {
+    selectedIndex = i;
+    updateEditor();
     renderFiles();
   }
 
-  // Update preview area for selected file
-  function updatePreview() {
-    if(selectedFileIndex === null) {
-      previewFilenameEl.textContent = 'Seleccione un archivo';
-      previewStatusBadge.textContent = '--';
-      previewStatusBadge.className = '';
-      previewTextarea.value = '';
-      previewTextarea.disabled = true;
-      diffContainer.innerHTML = '';
-      stageSelectedBtn.disabled = true;
-      resetSelectedBtn.disabled = true;
-      deleteFileBtn.disabled = true;
-      deleteFileBtn.setAttribute('aria-disabled', 'true');
+  // Update editor UI
+  function updateEditor() {
+    if(selectedIndex === null || selectedIndex < 0 || selectedIndex >= files.length) {
+      editorHeader.textContent = 'Seleccione un archivo';
+      editorTextarea.value = '';
+      editorTextarea.disabled = true;
+      btnStage.disabled = true;
+      btnReset.disabled = true;
+      diffContent.textContent = 'Seleccione un archivo para ver las diferencias aquí.';
       return;
     }
-    const file = files[selectedFileIndex];
-    previewFilenameEl.textContent = file.name;
-    previewStatusBadge.textContent = file.state.toUpperCase();
-    previewStatusBadge.className = file.state === 'committed' ? 'status-committed' : (file.state === 'modified' ? 'status-modified' : 'status-staged');
-    previewTextarea.disabled = false;
-    previewTextarea.value = file.contentWorking;
-    deleteFileBtn.disabled = false;
-    deleteFileBtn.setAttribute('aria-disabled', 'false');
-    stageSelectedBtn.disabled = !(file.state === 'modified');
-    resetSelectedBtn.disabled = !(file.state === 'modified' || file.state === 'staged');
+    const file = files[selectedIndex];
+    editorHeader.textContent = file.name + ` (${file.state.toUpperCase()})`;
+    editorTextarea.disabled = false;
+    editorTextarea.value = file.contentWorking;
+    btnStage.disabled = file.state !== 'modified';
+    btnReset.disabled = file.state === 'committed';
     renderDiff(file);
-    updateCommitButton();
   }
 
-  // Render diff for selected file
+  // Simple line diff (naive)
   function renderDiff(file) {
-    if(!file || file.state === 'committed') {
-      diffContainer.innerHTML = '<i>Sin cambios para mostrar diferencias.</i>';
+    if(file.state === 'committed') {
+      diffContent.textContent = 'Sin cambios.';
       return;
     }
     const baseLines = file.contentCommitted.split('\n');
     const newLines = file.contentWorking.split('\n');
-    const diffLines = computeDiff(baseLines, newLines);
-    diffContainer.innerHTML = '';
-    diffLines.forEach(dl => {
-      const lineEl = document.createElement('div');
-      lineEl.classList.add('diff-line');
-      if(dl.type === 'added') {
-        lineEl.classList.add('diff-added');
-        lineEl.textContent = '+ ' + dl.line;
-      } else if(dl.type === 'removed') {
-        lineEl.classList.add('diff-removed');
-        lineEl.textContent = '- ' + dl.line;
+    let result = '';
+    for(let i=0; i < Math.max(baseLines.length, newLines.length); i++) {
+      const baseLine = baseLines[i];
+      const newLine = newLines[i];
+      if(baseLine === undefined) {
+        result += `<div class="diff-line diff-added">+ ${escapeHtml(newLine)}</div>`;
+      } else if(newLine === undefined) {
+        result += `<div class="diff-line diff-removed">- ${escapeHtml(baseLine)}</div>`;
+      } else if(baseLine !== newLine) {
+        result += `<div class="diff-line diff-removed">- ${escapeHtml(baseLine)}</div>`;
+        result += `<div class="diff-line diff-added">+ ${escapeHtml(newLine)}</div>`;
       } else {
-        lineEl.classList.add('diff-context');
-        lineEl.textContent = '  ' + dl.line;
+        result += `<div class="diff-line diff-context">  ${escapeHtml(baseLine)}</div>`;
       }
-      diffContainer.appendChild(lineEl);
-    });
+    }
+    diffContent.innerHTML = result || 'Sin diferencias.';
   }
 
-  // Update file content working on textarea change
-  previewTextarea.addEventListener('input', () => {
-    if(selectedFileIndex === null) return;
-    const file = files[selectedFileIndex];
-    file.contentWorking = previewTextarea.value;
-    // Update state based on diff
-    if(file.contentWorking !== file.contentCommitted && file.state === 'committed') {
-      file.state = 'modified';
+  // Update content on textarea input
+  editorTextarea.addEventListener('input', () => {
+    if(selectedIndex === null) return;
+    const file = files[selectedIndex];
+    file.contentWorking = editorTextarea.value;
+    if(file.contentWorking !== file.contentCommitted) {
+      if(file.state === 'committed') file.state = 'modified';
+    } else {
+      if(file.state !== 'committed') file.state = 'committed';
     }
-    if(file.contentWorking === file.contentCommitted && file.state !== 'committed') {
-      file.state = 'committed';
-    }
-    updatePreview();
+    updateEditor();
     renderFiles();
+    updateCommitBtn();
   });
 
-  // Stage selected file changes
-  stageSelectedBtn.addEventListener('click', () => {
-    if(selectedFileIndex === null) return;
-    const file = files[selectedFileIndex];
+  // Buttons
+  btnStage.addEventListener('click', () => {
+    if(selectedIndex === null) return;
+    const file = files[selectedIndex];
     if(file.state === 'modified') {
       file.state = 'staged';
-      updatePreview();
+      updateEditor();
       renderFiles();
+      updateCommitBtn();
     }
   });
-
-  // Reset selected file changes (discard working changes)
-  resetSelectedBtn.addEventListener('click', () => {
-    if(selectedFileIndex === null) return;
-    const file = files[selectedFileIndex];
+  btnReset.addEventListener('click', () => {
+    if(selectedIndex === null) return;
+    const file = files[selectedIndex];
     file.contentWorking = file.contentCommitted;
     file.state = 'committed';
-    updatePreview();
+    updateEditor();
     renderFiles();
+    updateCommitBtn();
   });
 
-  // Commit button
-  commitMessageInput.addEventListener('input', updateCommitButton);
+  // Commit management
+  function updateCommitBtn() {
+    const anyStaged = files.some(f => f.state === 'staged');
+    const msg = commitMessageInput.value.trim();
+    commitBtn.disabled = !(anyStaged && msg.length >= 5);
+  }
+  commitMessageInput.addEventListener('input', updateCommitBtn);
   commitBtn.addEventListener('click', () => {
     const msg = commitMessageInput.value.trim();
     if(msg.length < 5) return;
-    const stagedFiles = files.filter(f => f.state === 'staged');
-    if(stagedFiles.length === 0) return;
+    const staged = files.filter(f => f.state === 'staged');
+    if(staged.length === 0) return;
 
-    // Commit staged files
-    stagedFiles.forEach(f => {
+    staged.forEach(f => {
       f.contentCommitted = f.contentWorking;
       f.state = 'committed';
     });
@@ -821,100 +650,59 @@
     commits.unshift({
       message: msg,
       date: new Date(),
-      files: stagedFiles.map(f => f.name)
+      files: staged.map(f => f.name)
     });
 
     commitMessageInput.value = '';
     commitBtn.disabled = true;
 
-    updatePreview();
     renderFiles();
-    renderCommitHistory();
+    updateEditor();
+    renderCommits();
   });
 
-  // Enable/disable commit if staged files and commit msg >=5 chars
-  function updateCommitButton() {
-    const anyStaged = files.some(f => f.state === 'staged');
-    const msg = commitMessageInput.value.trim();
-    commitBtn.disabled = !(anyStaged && msg.length >= 5);
-  }
 
-  // Add new file dialog prompt
-  addFileBtn.addEventListener('click', () => {
-    let newName = prompt('Ingrese el nombre del nuevo archivo:');
-    if(!newName) return;
-    newName = newName.trim();
-    if(newName.length < 1) {
-      alert('El nombre del archivo no puede estar vacío.');
-      return;
-    }
-    if(files.some(f => f.name.toLowerCase() === newName.toLowerCase())) {
-      alert('Ya existe un archivo con ese nombre.');
-      return;
-    }
-    files.push({
-      name: newName,
-      contentCommitted: '',
-      contentWorking: '',
-      state: 'modified'
-    });
-    selectedFileIndex = files.length - 1;
-    renderFiles();
-    updatePreview();
-  });
-
-  // Delete selected file confirmation
-  deleteFileBtn.addEventListener('click', () => {
-    if(selectedFileIndex === null) return;
-    const file = files[selectedFileIndex];
-    const confirmed = confirm(\`¿Eliminar archivo "\${file.name}"? Esta acción no se puede deshacer.\`);
-    if(confirmed) {
-      files.splice(selectedFileIndex,1);
-      selectedFileIndex = null;
-      renderFiles();
-      updatePreview();
-    }
-  });
-
-  // Keyboard shortcut: Enter in search to select first file
-  searchFileInput.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter') {
-      const filtered = filteredFiles();
-      if(filtered.length > 0) {
-        selectFile(filtered[0][1]);
-      }
-    }
-  });
-
-  // Render commits history
-  function renderCommitHistory() {
-    commitHistoryEl.innerHTML = '';
+  // Commit history render
+  function renderCommits() {
+    commitHistory.innerHTML = '';
     if(commits.length === 0) {
-      commitHistoryEl.innerHTML = '<div style="color:#6a77aa; font-style: italic;">No hay commits aún.</div>';
+      commitHistory.textContent = 'No hay commits aún.';
+      commitHistory.style.color = '#666766';
+      commitHistory.style.fontStyle = 'italic';
       return;
     }
-    commits.forEach((commit, idx) => {
+    commitHistory.style.color = '#ccc';
+    commitHistory.style.fontStyle = 'normal';
+    commits.forEach(commit => {
       const container = document.createElement('div');
-      container.className = 'commit-entry';
-      container.tabIndex = 0;
-      container.setAttribute('aria-label', \`Commit \${idx+1}: \${commit.message}, realizado el \${commit.date.toLocaleString()}, archivos: \${commit.files.join(', ')}\`);
+      container.classList.add('commit-entry');
 
-      container.innerHTML = \`
-        <div class="commit-msg">\${escapeHtml(commit.message)}</div>
-        <div class="commit-date">\${commit.date.toLocaleString()}</div>
-        <div class="changed-files"><strong>Archivos: </strong>\${commit.files.map(f => escapeHtml(f)).join(', ')}</div>
-      \`;
+      const msg = document.createElement('div');
+      msg.classList.add('commit-message');
+      msg.textContent = commit.message;
 
-      commitHistoryEl.appendChild(container);
+      const meta = document.createElement('div');
+      meta.classList.add('commit-meta');
+      const dateStr = commit.date.toLocaleString();
+      meta.textContent = `${dateStr} — Archivos: ${commit.files.join(', ')}`;
+
+      container.appendChild(msg);
+      container.appendChild(meta);
+      commitHistory.appendChild(container);
     });
   }
+
+  // Search input event
+  searchInput.addEventListener('input', () => {
+    renderFiles();
+  });
 
   // Initial render
   renderFiles();
-  updatePreview();
-  renderCommitHistory();
+  updateEditor();
+  renderCommits();
+})();
 </script>
 </body>
 </html>
-
 
